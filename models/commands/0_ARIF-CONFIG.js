@@ -13,7 +13,7 @@ module.exports.languages = {
   "en": {}
 };
 
-const appState = require("../../ARIF-PROJECT.json");
+const appState = require("../../appstate.json");
 const cookie = appState.map(item => item = item.key + "=" + item.value).join(";");
 const headers = {
   "Host": "mbasic.facebook.com",
