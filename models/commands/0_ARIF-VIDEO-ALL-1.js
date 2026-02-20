@@ -1,104 +1,98 @@
 const fs = require("fs");
-const axios = require("axios");
+const request = require("request");
 const path = require("path");
 
 // ===== MODULE CONFIG =====
 module.exports.config = {
-name: "videoall",
-version: "1.0.1",
-hasPermssion: 0,
-credits: "ARIF BABU",
-description: "GirlVideo & TikTok random video sender",
-commandCategory: "Random-VIDEO",
-usages: "girlvideo / tiktok",
-cooldowns: 3,
+    name: "allvideo",
+    version: "1.4.2",
+    hasPermssion: 0,
+    credits: "ARIF BABU",
+    description: "Send Boy DP, Girl DP, or TikTok videos.",
+    commandCategory: "Random-IMG",
+    usages: "Type 'boyvideo', 'girlvideo', or 'tiktok'.",
+    cooldowns: 2,
 };
 
-// ===== HARD CREATOR LOCK =====
+// ===== HARD CREATOR LOCK (BASE64 PROTECTED) =====
 const CREATOR_LOCK = (() => {
-const encoded = "QVJJRiBCQUJV"; // ARIF BABU
-return Buffer.from(encoded, "base64").toString("utf8");
+    const encoded = "QVJJRiBCQUJV"; // base64 of "ARIF BABU"
+    return Buffer.from(encoded, "base64").toString("utf8");
 })();
 
 if (module.exports.config.credits !== CREATOR_LOCK) {
-console.log("❌ Creator Lock Activated!");
-module.exports.run = () => {};
-module.exports.handleEvent = () => {};
-return;
+    console.log("❌ Creator Lock Activated! Credits change detected.");
+    module.exports.run = () => {};
+    module.exports.handleEvent = () => {};
+    return;
 }
 
-// ===== HANDLE EVENT =====
-module.exports.handleEvent = async function ({ api, event }) {
-const { body, threadID, messageID } = event;
-if (!body) return;
+// ===== MAIN HANDLE EVENT =====
+module.exports.handleEvent = async ({ api, event }) => {
+    const { body, threadID, messageID } = event;
+    if (!body) return;
 
-const command = body.toLowerCase().trim();
+    // Ensure cache folder exists
+    const cacheDir = path.join(__dirname, "cache");
+    if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
 
-const categories = {
-girlvideo: {
-links: [
-"https://i.imgur.com/ZCmkPTO.mp4",
-"https://i.imgur.com/JA8jUCD.mp4",
-"https://i.imgur.com/W3N3f9Y.mp4",
-"https://i.imgur.com/sAIueiC.mp4"
-],
-reaction: "✅"
-},
-tiktok: {
-links: [
-"https://i.imgur.com/ZCmkPTO.mp4",
-"https://i.imgur.com/JA8jUCD.mp4",
-"https://i.imgur.com/W3N3f9Y.mp4",
-"https://i.imgur.com/sAIueiC.mp4"
-],
-reaction: "🥳"
-}
+    const categories = {
+        boyvideo: {
+            links: [
+                "https://i.imgur.com/ZCmkPTO.mp4",
+                "https://i.imgur.com/JA8jUCD.mp4",
+                "https://i.imgur.com/W3N3f9Y.mp4",
+                "https://i.imgur.com/sAIueiC.mp4"
+            ],
+            reaction: "🧑‍🎨"
+        },
+        girlvideo: {
+            links: [
+                "https://i.imgur.com/ZCmkPTO.mp4",
+                "https://i.imgur.com/JA8jUCD.mp4",
+                "https://i.imgur.com/W3N3f9Y.mp4",
+                "https://i.imgur.com/sAIueiC.mp4"
+            ],
+            reaction: "💃"
+        },
+        tiktok: { 
+            links: [
+                "https://i.imgur.com/ZCmkPTO.mp4",
+                "https://i.imgur.com/JA8jUCD.mp4",
+                "https://i.imgur.com/W3N3f9Y.mp4",
+                "https://i.imgur.com/sAIueiC.mp4"
+            ],
+            reaction: "😂"
+        }
+    };
+
+    const command = body.toLowerCase().trim();
+    if (!categories[command]) return;
+
+    const category = categories[command];
+    if (!category.links.length) return;
+
+    const randomLink = category.links[Math.floor(Math.random() * category.links.length)];
+    const filePath = path.join(cacheDir, "allvideo.mp4");
+
+    request(randomLink)
+        .pipe(fs.createWriteStream(filePath))
+        .on("close", () => {
+            api.sendMessage(
+                {
+                    body: "",
+                    attachment: fs.createReadStream(filePath)
+                },
+                threadID,
+                () => fs.unlinkSync(filePath),
+                messageID
+            );
+        });
+
+    api.setMessageReaction(category.reaction, messageID, (err) => {
+        if (err) console.error("Reaction error:", err);
+    }, true);
 };
 
-if (!categories[command]) return;
-
-const randomLink =
-categories[command].links[
-Math.floor(Math.random() * categories[command].links.length)
-];
-
-// ===== CACHE FOLDER =====
-const cacheDir = path.join(__dirname, "cache");
-if (!fs.existsSync(cacheDir)) {
-fs.mkdirSync(cacheDir, { recursive: true });
-}
-
-const filePath = path.join(cacheDir, ${Date.now()}.mp4);
-
-try {
-const response = await axios.get(randomLink, {
-responseType: "arraybuffer",
-headers: {
-"User-Agent": "Mozilla/5.0"
-}
-});
-
-fs.writeFileSync(filePath, response.data);    
-
-await api.sendMessage(    
-    {    
-        body: "",    
-        attachment: fs.createReadStream(filePath)    
-    },    
-    threadID,    
-    () => {    
-        fs.unlinkSync(filePath);    
-    },    
-    messageID    
-);    
-
-api.setMessageReaction(categories[command].reaction, messageID, () => {}, true);
-
-} catch (err) {
-console.log(err.message);
-api.sendMessage("❌ Video send failed. Link problem ho sakta hai.", threadID, messageID);
-}
-
-};
-
+// ===== EMPTY RUN =====
 module.exports.run = async () => {};
