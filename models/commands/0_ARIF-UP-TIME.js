@@ -38,7 +38,7 @@ function sendUptime(api, event) {
 
   const time = now.toLocaleTimeString("en-IN", {
     hour12: true,
-    timeZone: "Asia/Kolkata"
+    timeZone: "Asia/Karachi"
   });
 
   const date = now.toLocaleDateString("en-IN", {
@@ -47,14 +47,14 @@ function sendUptime(api, event) {
 
   const day = now.toLocaleDateString("en-IN", {
     weekday: "long",
-    timeZone: "Asia/Kolkata"
+    timeZone: "Asia/Karachi"
   });
 
   const commandsCount = global.client.commands
     ? global.client.commands.size
     : "N/A";
 
-  const owner = "ARIF BABU";
+  const owner = "TAHA BABU";
 
   const message = 
 `╭─────────────────────────────╮
@@ -69,7 +69,7 @@ function sendUptime(api, event) {
 ✰ 𝗢𝘄𝗻𝗲𝗿 ➪ ${owner} 👑
 
 ┗━━━━━━━━━━━━━━━━━━━━━━━┛
-𝗠𝗔𝗗𝗘 𝗕𝗬 ❤️‍🔥 𝗔𝗥𝗜𝗙 𝗕𝗔𝗕𝗨`;
+𝗠𝗔𝗗𝗘 𝗕𝗬 ❤️‍🔥 TAHA BABU`;
 
   api.sendMessage(message, event.threadID, event.messageID);
 }
