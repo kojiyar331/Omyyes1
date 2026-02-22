@@ -33,7 +33,7 @@ if (module.exports.config.credits !== CREATOR_LOCK) {
 const lang = {
   en: {
     title: "📚 ALL AVAILABLE COMMANDS",
-    footer: "MADE BY ARIF BABU 🙂🥀"
+    footer: "MADE BY TAHA BABU 🙂🥀"
   }
 };
 
@@ -77,10 +77,10 @@ module.exports.run = async ({ api, event }) => {
 
   /* ===== IMAGE ===== */
   const images = [
-    "https://i.imgur.com/gyxhVCh.png",
-    "https://i.imgur.com/iTskEvb.png",
-    "https://i.imgur.com/AJkpAle.png",
-    "https://i.imgur.com/i1BgQhz.png"
+    "https://i.ibb.co/8gf4dQWc/a44248a85dbc.gif",
+    "https://i.ibb.co/8gf4dQWc/a44248a85dbc.gif",
+    "https://i.ibb.co/8gf4dQWc/a44248a85dbc.gif",
+    "https://i.ibb.co/8gf4dQWc/a44248a85dbc.gif"
   ];
 
   const img = images[Math.floor(Math.random() * images.length)];
