@@ -1,107 +1,119 @@
 const axios = require("axios");
 
-// ================= CREATOR LOCK (TAHA KHAN) =================
-const CREATOR_LOCK = (() => {
-  const encoded = "U0hBQU4gS0hBTg=="; // TAHA KHAN in Base64
-  return Buffer.from(encoded, "base64").toString("utf8");
-})();
-
-// ===== MODULE CONFIG =====
 module.exports.config = {
-  name: "TAHA-AI", 
-  version: "2.0.4",
-  hasPermssion: 0,
-  credits: "TAHA KHAN", 
-  description: "Mirai AI with Groq API (Strict Trigger Version)",
-  commandCategory: "ai",
-  usages: "taha <msg> | ai | reply to taha",
-  cooldowns: 2,
-  dependencies: { axios: "" }
+  name: "hercai",
+  version: "6.5.0",
+  hasPermission: 0,
+  credits: "Shaan Khan", 
+  description: "Real-time AI with Multi-language support",
+  commandCategory: "AI",
+  usePrefix: false,
+  usages: "[AI + Sawal] or [script <language>]",
+  cooldowns: 1,
 };
 
-// 🔐 Credit Protection
-if (module.exports.config.credits !== CREATOR_LOCK) {
-  console.log("❌ Creator Lock Activated! Credits cannot be changed.");
-  module.exports.run = () => {};
-  module.exports.handleEvent = () => {};
-  return;
-}
+let userMemory = {};
+let userSettings = {}; // Language preference store karne ke liye
+let isActive = true;
 
-// 🔑 GROQ CONFIG
-const GROQ_API_KEY = "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";
-const MODEL_NAME = "llama-3.3-70b-versatile";
-
-const history = {};
-
-const systemPrompt = `
-Tum ek Naughty aur Romantic GF ho 💋
-Tumhara naam: TAHA AI 💃
-Credits: TAHA KHAN ❤️
-Style: Flirty, loving, short replies (1-2 lines only).
-`;
-
-module.exports.run = () => {};
+const GROQ_API_KEY = "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"; 
 
 module.exports.handleEvent = async function ({ api, event }) {
   const { threadID, messageID, senderID, body, messageReply } = event;
-  if (!body) return;
+  if (!isActive || !body) return;
 
-  const text = body.toLowerCase().trim();
-
-  // ✅ NEW STRICT LOGIC
-  // 1. Kya message "taha" ya "ai " se SHURU ho raha hai?
-  const startsWithTrigger = text.startsWith("taha") || text.startsWith("ai ");
-  
-  // 2. Kya message SIRF "taha" ya "ai" hai?
-  const exactTrigger = text === "taha" || text === "ai" || text === "ai bolo";
-
-  // 3. Kya koi bot ke message par REPLY kar raha hai?
+  const input = body.trim().toLowerCase();
+  const triggerWords = ["ai", "bot", "hercai", "taha"];
   const isReplyToBot = messageReply && messageReply.senderID === api.getCurrentUserID();
+  const startsWithTrigger = triggerWords.some(word => input.startsWith(word + " "));
 
-  // Agar inme se kuch bhi nahi hai, toh bot khamosh rahega
-  if (!startsWithTrigger && !exactTrigger && !isReplyToBot) return;
+  if (triggerWords.includes(input)) return;
+  if (!startsWithTrigger && !isReplyToBot) return;
 
-  // Cleaning the message for AI processing
-  let userMessage = body;
-  if (startsWithTrigger) {
-    userMessage = body.split(' ').slice(1).join(' '); // Pehla word (bot/ai) hata do
+  let cleanInput = body;
+  triggerWords.forEach(word => {
+    if (input.startsWith(word + " ")) cleanInput = body.slice(word.length).trim();
+  });
+
+  api.setMessageReaction("⌛", messageID, () => {}, true);
+
+  // Initializing Memory & Language
+  if (!userMemory[senderID]) userMemory[senderID] = [];
+  if (!userSettings[senderID]) userSettings[senderID] = "Roman Urdu";
+
+  let searchResults = "";
+  const timeQuery = ["aaj", "today", "waqt", "time", "date"].some(word => input.includes(word));
+  
+  if (timeQuery) {
+    const now = new Date();
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Karachi' };
+    searchResults = `\n[SYSTEM INFO: Date: ${now.toLocaleDateString('en-US', options)}. Time: ${now.toLocaleTimeString('en-US')}]`;
   }
 
-  if (!history[senderID]) history[senderID] = [];
-  history[senderID].push(`User: ${userMessage}`);
-  if (history[senderID].length > 5) history[senderID].shift();
-
-  const finalPrompt = systemPrompt + "\n" + history[senderID].join("\n");
-
-  api.setMessageReaction("🍑", messageID, () => {}, true);
+  const systemPrompt = `
+  Identity: You are Hercai AI by taha Khan.
+  Current Context: ${searchResults}
+  
+  STRICT RULES:
+  1. LANGUAGE/SCRIPT: You MUST reply only in ${userSettings[senderID]}. 
+  2. If script is "Urdu Native", use Urdu alphabet (اردو). 
+  3. If script is "Hindi", use Devanagari (हिंदी).
+  4. LENGTH: Max 2-3 short sentences.
+  5. STYLE: Friendly but direct. Use 1-2 emojis. ✨`;
 
   try {
     const response = await axios.post(
       "https://api.groq.com/openai/v1/chat/completions",
       {
-        model: MODEL_NAME,
+        model: "llama-3.3-70b-versatile",
         messages: [
-          { role: "system", content: "You are a flirty, naughty GF." },
-          { role: "user", content: finalPrompt }
+          { role: "system", content: systemPrompt },
+          ...userMemory[senderID],
+          { role: "user", content: cleanInput }
         ],
-        temperature: 0.9,
-        max_tokens: 150
+        temperature: 0.6,
+        max_tokens: 300
       },
-      {
-        headers: {
-          Authorization: `Bearer ${GROQ_API_KEY}`,
-          "Content-Type": "application/json"
-        }
-      }
+      { headers: { "Authorization": `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" } }
     );
 
-    const reply = response.data.choices?.[0]?.message?.content || "Ofo jaan.. nakhre mat dikhao 💋";
-    history[senderID].push(`Bot: ${reply}`);
+    let botReply = response.data.choices[0].message.content;
 
-    api.sendMessage(reply, threadID, messageID);
-    api.setMessageReaction("💋", messageID, () => {}, true);
+    userMemory[senderID].push({ role: "user", content: cleanInput }, { role: "assistant", content: botReply });
+    if (userMemory[senderID].length > 8) userMemory[senderID].splice(0, 2);
 
-  } catch (err) {
-    api.sendMessage("Uff baby.. thoda network issue hai 🥺", threadID, messageID);
+    api.setMessageReaction("✅", messageID, () => {}, true);
+    return api.sendMessage(botReply, threadID, messageID);
+
+  } catch (error) {
+    api.setMessageReaction("❌", messageID, () => {}, true);
+    return api.sendMessage("❌ Groq API Error! Check Key. ✨", threadID, messageID);
   }
+};
+
+module.exports.run = async function ({ api, event, args }) {
+  const { threadID, messageID, senderID } = event;
+  const cmd = args[0]?.toLowerCase();
+
+  // Multi-Language Selection Logic
+  if (cmd === "script" || cmd === "language") {
+    const lang = args[1]?.toLowerCase();
+    const modes = {
+      "roman": "Roman Urdu",
+      "urdu": "Urdu Native (اردو)",
+      "english": "English",
+      "hindi": "Hindi (हिंदी)"
+    };
+
+    if (modes[lang]) {
+      userSettings[senderID] = modes[lang];
+      return api.sendMessage(`✅ Language set to: ${modes[lang]} ✨`, threadID, messageID);
+    } else {
+      return api.sendMessage("❓ Usage: hercai script [roman/urdu/english/hindi]", threadID, messageID);
+    }
+  }
+
+  if (cmd === "on") { isActive = true; return api.sendMessage("✅ Hercai Active!", threadID, messageID); }
+  if (cmd === "off") { isActive = false; return api.sendMessage("⚠️ Paused.", threadID, messageID); }
+  if (cmd === "clear") { userMemory[senderID] = []; return api.sendMessage("🧹 Memory Cleared!", threadID, messageID); }
 };
